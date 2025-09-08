@@ -90,7 +90,7 @@ function wireSubmit() {
     }
 
     // Fallback: open email client to the address on the dialog
-    const to = $("inqDialog")?.dataset?.toEmail || "hello@example.com";
+    const to = $("inqDialog")?.dataset?.toEmail || "jacopoberton98@gmail.com";
     const subject = `Inquiry${topic ? ": " + topic : ""} — from ${name}`;
     const body = `Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}\n\n— sent from Bio page`;
     try { location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
