@@ -32,7 +32,7 @@ function loginModal(){
 async function publishForPage(){
   const path = location.pathname;
   const mode = document.documentElement.getAttribute('data-mode');
-  if (mode !== 'editor') return alert("Switch to Editor mode (Ctrl+Shift+E).");
+  if (mode !== 'editor') return alert("Please log in to enter Editor mode first.");
   const user = await getUser();
   if (!user) return alert("Login first.");
 
@@ -103,12 +103,16 @@ async function refreshStatus(){
 }
 
 function boot(){
+  // Tray only visible in Editor mode; access-mode.js will switch to editor if user is authenticated
   if (document.documentElement.getAttribute('data-mode') !== 'editor') return;
+
   const tray = trayUI();
   document.body.appendChild(tray);
+
   const login = tray.querySelector('#etLogin');
   const publish = tray.querySelector('#etPublish');
   const newp = tray.querySelector('#etNewProj');
+
   login.addEventListener('click', () => {
     const modal = loginModal();
     document.body.appendChild(modal);
@@ -117,16 +121,20 @@ function boot(){
       const email = modal.querySelector('#etEmail').value.trim();
       const pass = modal.querySelector('#etPass').value;
       try {
-  await signIn(email, pass);
-  modal.remove();
-  refreshStatus();
-  if (window.TSN_View) window.TSN_View.enterEditorIfAuthed();
-} catch(e){ alert(e.message); }
+        await signIn(email, pass);
+        modal.remove();
+        refreshStatus();
+        if (window.TSN_View) window.TSN_View.enterEditorIfAuthed();
+      } catch(e){ alert(e.message); }
     };
   });
+
   publish.addEventListener('click', publishForPage);
   newp.addEventListener('click', createNewProject);
+
   refreshStatus();
+  // if already logged in when page loads, ensure we're in Editor
+  getUser().then(u => { if (u && window.TSN_View) window.TSN_View.enterEditorIfAuthed(); });
 }
 
 document.addEventListener('DOMContentLoaded', boot);
