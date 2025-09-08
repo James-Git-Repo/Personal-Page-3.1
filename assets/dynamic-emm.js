@@ -1,57 +1,98 @@
+// assets/dynamic-emm.js
 import { sb } from "./sb-init.js";
+const $ = s => document.querySelector(s);
 
-function qs(s){ return document.querySelector(s); }
-
-function inject(a){
-  if (!a) return;
-  const title = qs(".cover-title");
-  const deck  = qs(".cover-deck");
-  const hero  = qs(".hero");
-  const body  = qs("#articleBody");
-  if (title) title.textContent = a.title || "";
-  if (deck)  deck.textContent  = a.subtitle || a.deck || "";
-  if (hero && a.hero_url) hero.style.backgroundImage = `url('${a.hero_url}')`;
-  if (body && a.body_html) body.innerHTML = a.body_html;
+function inject(article){
+  if (!article) return;
+  const title = $(".cover-title");
+  const deck  = $(".cover-deck");
+  const hero  = $(".hero");
+  const body  = $("#articleBody");
+  if (title) title.textContent = article.title || "";
+  if (deck)  deck.textContent  = article.subtitle || article.deck || "";
+  if (hero && article.hero_url) hero.style.backgroundImage = `url('${article.hero_url}')`;
+  if (body && article.body_html) body.innerHTML = article.body_html;
 }
 
 async function fetchArticle(){
   const url = new URL(location.href);
   const slug = url.searchParams.get("a");
   let q = sb.from("emm_articles").select("*").eq("status","published");
-  if (slug) q = q.eq("slug", slug);
-  else q = q.order("published_at", { ascending: false }).limit(1);
+  q = slug ? q.eq("slug", slug) : q.order("published_at", { ascending: false }).limit(1);
   const { data, error } = await q.maybeSingle();
-  if (error) { console.error(error); return null; }
+  if (error) { console.error("[emm] fetch", error); return null; }
   return data;
 }
 
+// ---- Contribute (viewer-allowed) ----
 function whitelistContrib(){
-  ["openContrib","contribDialog","contribFormContainer","ctName","ctEmail","ctType","ctFile","ctMsg","ctConsent","closeContrib","cancelContrib","submitContrib"]
-    .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute("data-view-allowed",""); });
+  [
+    "openContrib","contribDialog","contribForm",
+    "ctName","ctEmail","ctType","ctMsg","ctConsent",
+    "cancelContrib","submitContrib"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("data-view-allowed","");
+  });
 }
 
-function wireContribForm(){
+function wireContrib(){
   const dlg = document.getElementById("contribDialog");
-  const send = document.getElementById("submitContrib");
-  if (!dlg || !send) return;
-  send.addEventListener("click", async () => {
-    const get = s => document.querySelector(s);
-    const name = get("#ctName")?.value?.trim();
-    const email= get("#ctEmail")?.value?.trim();
-    const type = get("#ctType")?.value;
-    const msg  = get("#ctMsg")?.value?.trim();
-    const ok   = get("#ctConsent")?.checked;
-    if (!name || !email || !msg || !ok) { alert("Fill Name, Email, Message & consent"); return; }
-    const slug = (new URL(location.href)).searchParams.get("a") || null;
-    const { error } = await sb.from("emm_contribs").insert({ name,email,type,message:msg, article_slug:slug });
-    if (error) { alert("Thanks! If DB isn't set yet, please email your contribution."); }
-    dlg.close();
-  });
+  const openBtn = document.getElementById("openContrib");
+  const cancelBtn = document.getElementById("cancelContrib");
+  const sendBtn = document.getElementById("submitContrib");
+
+  if (openBtn && dlg) {
+    openBtn.addEventListener("click", () => {
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.style.display = "block";
+    });
+  }
+  if (cancelBtn && dlg) {
+    cancelBtn.addEventListener("click", () => {
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.style.display = "none";
+    });
+  }
+  if (sendBtn && dlg) {
+    sendBtn.addEventListener("click", async () => {
+      const name  = $("#ctName")?.value?.trim();
+      const email = $("#ctEmail")?.value?.trim();
+      const type  = $("#ctType")?.value || null;
+      const msg   = $("#ctMsg")?.value?.trim();
+      const ok    = $("#ctConsent")?.checked;
+
+      if (!name || !email || !msg || !ok) {
+        alert("Please fill Name, Email, Message and check the consent box.");
+        return;
+      }
+
+      const slug = (new URL(location.href)).searchParams.get("a") || null;
+
+      const { error } = await sb.from("emm_contribs").insert({
+        name, email, type, message: msg, article_slug: slug
+      });
+
+      if (error) {
+        // DB not ready or RLS misconfigured: fall back to mailto
+        try {
+          location.href = `mailto:jacopoberton98@gmail.com?subject=EMM%20Contribution&body=${encodeURIComponent(
+            `Name: ${name}\nEmail: ${email}\nType: ${type||"-"}\n\n${msg}`
+          )}`;
+        } catch(_) {}
+        alert("Thanks! If the form didn’t send, we opened your email client.");
+      } else {
+        alert("Thanks for your contribution!");
+      }
+
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.style.display = "none";
+    });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   whitelistContrib();
-  wireContribForm();
-  const a = await fetchArticle();
-  inject(a);
+  wireContrib();
+  inject(await fetchArticle());
 });
