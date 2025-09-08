@@ -7,4 +7,4 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 window.__SB = sb;
-window.__SB_INFO__ = { url: SUPABASE_URL };
+window.__SB_INFO__ = { url: SUPABASE_URL, keyStart: SUPABASE_ANON_KEY.slice(0,12) };
