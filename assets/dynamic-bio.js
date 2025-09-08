@@ -1,14 +1,105 @@
+// assets/dynamic-bio.js
 import { sb } from "./sb-init.js";
-const q = s => document.querySelector(s);
-function inject(bio){
-  if (!bio) return;
-  if (q(".bio-name")) q(".bio-name").textContent = bio.title || "";
-  if (q("#bioBody")) q("#bioBody").innerHTML = bio.body_html || "";
-  if (q(".bio-hero") && bio.hero_url){ const el = q(".bio-hero"); el.style.backgroundImage = `url('${bio.hero_url}')`; el.style.backgroundSize='cover'; }
+
+const $ = (id) => document.getElementById(id);
+
+function whitelist() {
+  [
+    "openInquiry","inqDialog","inqForm","closeInq","sendInq",
+  ].forEach((id) => { const x = $(id); if (x) x.setAttribute("data-view-allowed",""); });
+
+  // Allow contacts section and pills for viewers
+  const links = document.getElementById("links");
+  if (links) {
+    links.setAttribute("data-view-allowed", "");
+    links.querySelectorAll("a").forEach(a => a.setAttribute("data-view-allowed",""));
+  }
+
+  // Re-enable anything the viewer-lock disabled earlier
+  document.querySelectorAll("[data-view-allowed]").forEach((el) => {
+    if (el.disabled) el.disabled = false;
+    el.removeAttribute("data-locked");
+    if (el.tagName === "A") {
+      el.removeAttribute("aria-disabled");
+      el.style.pointerEvents = "";
+      el.style.opacity = "";
+    }
+  });
 }
-async function fetchBio(){
-  const { data, error } = await sb.from("bio_pages").select("*").eq("slug","bio").eq("status","published").maybeSingle();
-  if (error) { console.error(error); return null; }
-  return data;
+
+function wireDialog() {
+  const dlg = $("inqDialog");
+  const btn = $("openInquiry");
+  const closeBtn = $("closeInq");
+
+  function open() {
+    if (!dlg) return;
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.style.display = "block";
+  }
+  function close(e) {
+    if (e) e.preventDefault();
+    if (!dlg) return;
+    if (dlg.open && typeof dlg.close === "function") dlg.close();
+    else dlg.style.display = "none";
+  }
+
+  if (btn && dlg) btn.addEventListener("click", open, { capture:true });
+  if (closeBtn) closeBtn.addEventListener("click", close, { capture:true });
+
+  // backdrop to close
+  if (dlg) {
+    dlg.addEventListener("click", (e) => {
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+    }, { capture:true });
+  }
 }
-document.addEventListener("DOMContentLoaded", async ()=>{ inject(await fetchBio()); });
+
+function wireSubmit() {
+  const send = $("sendInq");
+  if (!send || send.dataset.sbHooked) return;
+  send.dataset.sbHooked = "1";
+
+  send.addEventListener("click", async (e) => {
+    const form = $("inqForm");
+    if (!form) return;
+
+    const fd = new FormData(form);
+    const name = (fd.get("name")||"").toString().trim();
+    const email = (fd.get("email")||"").toString().trim();
+    const topic = (fd.get("topic")||"").toString().trim();
+    const message = (fd.get("message")||"").toString().trim();
+
+    if (!name || !email || !message) { alert("Please fill Name, Email and Message."); return; }
+
+    try {
+      const { error } = await sb.from("inquiries").insert({
+        page: "bio", name, email, topic, message
+      });
+      if (!error) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        $("inqDialog")?.close?.();
+        form.reset();
+        alert("Thanks! I’ll get back to you.");
+        return;
+      }
+    } catch (_) {
+      // fall through to mailto
+    }
+
+    // Fallback: open email client to the address on the dialog
+    const to = $("inqDialog")?.dataset?.toEmail || "hello@example.com";
+    const subject = `Inquiry${topic ? ": " + topic : ""} — from ${name}`;
+    const body = `Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}\n\n— sent from Bio page`;
+    try { location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
+    catch(_) {}
+  }, { capture:true });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  whitelist();
+  wireDialog();
+  wireSubmit();
+});
