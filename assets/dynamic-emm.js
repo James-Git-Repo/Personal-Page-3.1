@@ -1,98 +1,78 @@
 // assets/dynamic-emm.js
+// Minimal EMM helper: DO NOT change hero/title/deck/content.
+// Only: (1) whitelist Contribute UI for viewers, (2) save contributions to Supabase.
+
 import { sb } from "./sb-init.js";
-const $ = s => document.querySelector(s);
 
-function inject(article){
-  if (!article) return;
-  const title = $(".cover-title");
-  const deck  = $(".cover-deck");
-  const hero  = $(".hero");
-  const body  = $("#articleBody");
-  if (title) title.textContent = article.title || "";
-  if (deck)  deck.textContent  = article.subtitle || article.deck || "";
-  if (hero && article.hero_url) hero.style.backgroundImage = `url('${article.hero_url}')`;
-  if (body && article.body_html) body.innerHTML = article.body_html;
-}
+const $ = (id) => document.getElementById(id);
 
-async function fetchArticle(){
-  const url = new URL(location.href);
-  const slug = url.searchParams.get("a");
-  let q = sb.from("emm_articles").select("*").eq("status","published");
-  q = slug ? q.eq("slug", slug) : q.order("published_at", { ascending: false }).limit(1);
-  const { data, error } = await q.maybeSingle();
-  if (error) { console.error("[emm] fetch", error); return null; }
-  return data;
-}
-
-// ---- Contribute (viewer-allowed) ----
-function whitelistContrib(){
+// Allow these elements to stay interactive in Viewer mode
+function allowViewer() {
   [
-    "openContrib","contribDialog","contribForm",
-    "ctName","ctEmail","ctType","ctMsg","ctConsent",
-    "cancelContrib","submitContrib"
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute("data-view-allowed","");
+    "openContrib",
+    "contribDialog",
+    "contribFormContainer", // old id in your page
+    "contribForm",          // alt id if you ever rename
+    "ctName","ctEmail","ctType","ctFile","ctMsg","ctConsent",
+    "closeContrib","cancelContrib","submitContrib",
+  ].forEach((id) => {
+    const el = $(id);
+    if (el) el.setAttribute("data-view-allowed", "");
   });
 }
 
-function wireContrib(){
-  const dlg = document.getElementById("contribDialog");
-  const openBtn = document.getElementById("openContrib");
-  const cancelBtn = document.getElementById("cancelContrib");
-  const sendBtn = document.getElementById("submitContrib");
-
-  if (openBtn && dlg) {
-    openBtn.addEventListener("click", () => {
-      if (typeof dlg.showModal === "function") dlg.showModal();
-      else dlg.style.display = "block";
-    });
-  }
-  if (cancelBtn && dlg) {
-    cancelBtn.addEventListener("click", () => {
-      if (typeof dlg.close === "function") dlg.close();
-      else dlg.style.display = "none";
-    });
-  }
-  if (sendBtn && dlg) {
-    sendBtn.addEventListener("click", async () => {
-      const name  = $("#ctName")?.value?.trim();
-      const email = $("#ctEmail")?.value?.trim();
-      const type  = $("#ctType")?.value || null;
-      const msg   = $("#ctMsg")?.value?.trim();
-      const ok    = $("#ctConsent")?.checked;
-
-      if (!name || !email || !msg || !ok) {
-        alert("Please fill Name, Email, Message and check the consent box.");
-        return;
-      }
-
-      const slug = (new URL(location.href)).searchParams.get("a") || null;
-
-      const { error } = await sb.from("emm_contribs").insert({
-        name, email, type, message: msg, article_slug: slug
-      });
-
-      if (error) {
-        // DB not ready or RLS misconfigured: fall back to mailto
-        try {
-          location.href = `mailto:jacopoberton98@gmail.com?subject=EMM%20Contribution&body=${encodeURIComponent(
-            `Name: ${name}\nEmail: ${email}\nType: ${type||"-"}\n\n${msg}`
-          )}`;
-        } catch(_) {}
-        alert("Thanks! If the form didn’t send, we opened your email client.");
-      } else {
-        alert("Thanks for your contribution!");
-      }
-
-      if (typeof dlg.close === "function") dlg.close();
-      else dlg.style.display = "none";
-    });
-  }
+function closeDialog() {
+  const dlg = $("contribDialog");
+  if (!dlg) return;
+  if (typeof dlg.close === "function") dlg.close();
+  else dlg.style.display = "none";
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  whitelistContrib();
-  wireContrib();
-  inject(await fetchArticle());
+// Attach a SUPABASE submit handler that runs in the CAPTURE phase.
+// If Supabase insert succeeds -> we consume the click (prevent the old local handler).
+// If it fails -> we let the old inline handler run (localStorage fallback + alert).
+function attachSupabaseSubmit() {
+  const btn = $("submitContrib");
+  if (!btn || btn.dataset.sbHooked) return;
+  btn.dataset.sbHooked = "1";
+
+  btn.addEventListener(
+    "click",
+    async (e) => {
+      const name = $("ctName")?.value?.trim();
+      const email = $("ctEmail")?.value?.trim();
+      const type = $("ctType")?.value || null;
+      const msg = $("ctMsg")?.value?.trim();
+      const ok = $("ctConsent")?.checked;
+
+      // Let your original inline JS handle validation alerts
+      if (!name || !email || !msg || !ok) return;
+
+      const url = new URL(location.href);
+      const article_slug = url.searchParams.get("a") || null;
+
+      try {
+        const { error } = await sb
+          .from("emm_contribs")
+          .insert({ name, email, type, message: msg, article_slug });
+
+        if (!error) {
+          // Success → stop the original inline handler from running
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          closeDialog();
+          alert("Thanks for your contribution!");
+        }
+        // If there was an error, do nothing → your inline handler will save locally.
+      } catch {
+        // Network/other error → fall through to inline handler
+      }
+    },
+    { capture: true } // important: run before the old (bubble-phase) handler
+  );
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  allowViewer();
+  attachSupabaseSubmit();
 });
