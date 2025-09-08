@@ -6,6 +6,5 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false }
 });
 
-// Debug helpers (so we can verify in the console)
 window.__SB = sb;
 window.__SB_INFO__ = { url: SUPABASE_URL };
