@@ -256,5 +256,38 @@
 <script type="module" src="assets/dynamic-emm.js"></script>  <!-- add/keep THIS -->
 <script type="module" src="assets/editor-auth.js"></script>
 <script type="module" src="assets/editor-tray.js"></script>
+ <script>
+  // Minimal wiring so Contribute opens/closes, independent of the old "el" object
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('openContrib');
+    const dlg = document.getElementById('contribDialog');
+    const closeBtn = document.getElementById('closeContrib');
+    const cancelBtn = document.getElementById('cancelContrib');
+
+    function open() {
+      if (!dlg) return;
+      if (typeof dlg.showModal === 'function') dlg.showModal();
+      else dlg.style.display = 'block';
+    }
+    function close(e) {
+      if (e) e.preventDefault();
+      if (!dlg) return;
+      if (dlg.open && typeof dlg.close === 'function') dlg.close();
+      else dlg.style.display = 'none';
+    }
+
+    if (btn && dlg) btn.addEventListener('click', open, { capture: true }); // capture so viewer-lock never blocks it
+    if (closeBtn) closeBtn.addEventListener('click', close, { capture: true });
+    if (cancelBtn) cancelBtn.addEventListener('click', close, { capture: true });
+
+    // close when clicking the backdrop
+    if (dlg) {
+      dlg.addEventListener('click', (e) => {
+        const r = dlg.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+      }, { capture: true });
+    }
+  });
+</script> 
 </body>
 </html>
