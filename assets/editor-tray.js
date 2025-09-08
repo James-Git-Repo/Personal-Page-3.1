@@ -116,7 +116,12 @@ function boot(){
     modal.querySelector('#etDoLogin').onclick = async () => {
       const email = modal.querySelector('#etEmail').value.trim();
       const pass = modal.querySelector('#etPass').value;
-      try { await signIn(email, pass); modal.remove(); refreshStatus(); alert("Logged in."); } catch(e){ alert(e.message); }
+      try {
+  await signIn(email, pass);
+  modal.remove();
+  refreshStatus();
+  if (window.TSN_View) window.TSN_View.enterEditorIfAuthed();
+} catch(e){ alert(e.message); }
     };
   });
   publish.addEventListener('click', publishForPage);
