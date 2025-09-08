@@ -463,5 +463,32 @@
 <script type="module" src="assets/dynamic-emm.js"></script>
 <script type="module" src="assets/editor-auth.js"></script>
 <script type="module" src="assets/editor-tray.js"></script>
+  <!-- Contribute trigger visible to everyone -->
+<button id="openContrib" data-view-allowed style="margin:16px 0">Contribute</button>
+
+<!-- Simple dialog (works as modal); if your browser/theme doesn’t support <dialog>, the JS will toggle display -->
+<dialog id="contribDialog" data-view-allowed>
+  <form id="contribForm" method="dialog" data-view-allowed style="min-width:320px;padding:16px">
+    <h3 style="margin:0 0 10px">Contribute to EMM</h3>
+
+    <input id="ctName"  data-view-allowed placeholder="Your name" required style="width:100%;margin-bottom:8px">
+    <input id="ctEmail" data-view-allowed type="email" placeholder="Email" required style="width:100%;margin-bottom:8px">
+    <select id="ctType" data-view-allowed style="width:100%;margin-bottom:8px">
+      <option value="tip">News tip</option>
+      <option value="chart">Chart</option>
+      <option value="story">Story</option>
+      <option value="other">Other</option>
+    </select>
+    <textarea id="ctMsg" data-view-allowed placeholder="Message" required style="width:100%;min-height:100px;margin-bottom:8px"></textarea>
+    <label style="display:block;margin-bottom:12px">
+      <input id="ctConsent" data-view-allowed type="checkbox" required> I agree to be contacted
+    </label>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="cancelContrib" type="button" data-view-allowed>Cancel</button>
+      <button id="submitContrib" type="button" data-view-allowed>Send</button>
+    </div>
+  </form>
+</dialog>
 </body>
 </html>
