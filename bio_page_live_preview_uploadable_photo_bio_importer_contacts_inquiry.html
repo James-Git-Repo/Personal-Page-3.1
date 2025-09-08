@@ -294,7 +294,7 @@
       const from = (fd.get('email')||'').toString();
       const topic= (fd.get('topic')||'').toString();
       const msg  = (fd.get('message')||'').toString();
-      const to = inqDialog.dataset.toEmail || 'hello@example.com';
+      const to = inqDialog.dataset.toEmail || 'jacopoberton98@gmail.com';
       const subject = `Inquiry${topic ? ': ' + topic : ''} — from ${name}`;
       const body = `Name: ${name}\nEmail: ${from}\nTopic: ${topic}\n\n${msg}\n\n— sent from Bio page`;
       window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
