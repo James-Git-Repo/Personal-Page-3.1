@@ -1,0 +1,31 @@
+/*! Role switcher — v1.2 (viewer strict) */
+(function(){
+  const EXPECTED_TOKEN = "edd9b8c166214a90997bf0abb951d62e9631d3d44ce1a2c39f6e9e3ac4e3ef4e"; 
+  const MODE_KEY = 'tsn_mode';
+  const TOKEN_KEY = 'tsn_token';
+  function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+  function setMode(m){m=(m==='editor'?'editor':(m==='user'?'user':'viewer'));document.documentElement.setAttribute('data-mode',m);lsSet(MODE_KEY,m);}
+  function getMode(){return(lsGet(MODE_KEY)||'viewer')}
+  function getToken(){return(lsGet(TOKEN_KEY)||'')}
+  function setToken(t){lsSet(TOKEN_KEY,t)}
+  function clearToken(){lsDel(TOKEN_KEY)}
+  async function sha256Hex(str){const d=new TextEncoder().encode(str);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+  async function enterEditorByPrompt(){const pass=prompt('Enter passphrase to enable Editor Mode:');if(pass===null)return;try{const tok=await sha256Hex(pass);if(tok===EXPECTED_TOKEN){setToken(tok);setMode('editor');applyState('editor');toast('Editor mode enabled')}else{alert('Wrong passphrase.')}}catch(err){console.error(err)}}
+  function exitEditor(){clearToken();setMode('viewer');applyState('viewer');toast('Viewer mode')}
+  function toViewer(){setMode('viewer');applyState('viewer')}
+  function toUser(){setMode('user');applyState('user')}
+  function isEditor(){return document.documentElement.getAttribute('data-mode')==='editor'}
+  window.TSN_View={enterEditorByPrompt,exitEditor,toViewer,toUser,isEditor};
+  function toast(msg){try{const n=document.createElement('div');n.textContent=msg;Object.assign(n.style,{position:'fixed',zIndex:'9999',bottom:'16px',left:'50%',transform:'translateX(-50%)',padding:'10px 14px',background:'rgba(0,0,0,0.7)',color:'#fff',font:'600 12px/1 Inter, system-ui, sans-serif',borderRadius:'999px',boxShadow:'0 8px 24px rgba(0,0,0,0.2)'});document.body.appendChild(n);setTimeout(()=>n.remove(),1400)}catch(e){}}
+  function disableInteractive(el){if(el.matches('[data-view-allowed]'))return;const t=el.tagName?.toLowerCase?.()||'';if(['input','select','textarea','button'].includes(t)){try{el.disabled=true}catch(e){}el.setAttribute('data-locked','true')}
+    if(el.getAttribute&&el.getAttribute('contenteditable')==='true'){el.setAttribute('contenteditable','false');el.removeAttribute('contenteditable');el.classList?.remove('edit-outline','editable')}
+    const attrs=el.getAttributeNames?el.getAttributeNames():[];attrs.forEach((name)=>{if(/^on(click|input|keydown|keyup|submit|change|drag|drop)/i.test(name)&&!el.hasAttribute('data-view-allowed'))el.removeAttribute(name)});}
+  function blockEvents(root){const blockSel=':is(button, input, select, textarea, [contenteditable], [role="button"], .btn, .button, .switch, .toggle, .editable, .editor, .toolbar, .controls):not([data-view-allowed])';['click','input','change','keydown','keyup','submit','dragstart','drop'].forEach((ev)=>{root.addEventListener(ev,function(e){const t=e.target.closest?e.target.closest(blockSel):null;if(t){e.stopImmediatePropagation();e.preventDefault();}},true);});}
+  function disableAnchors(){document.querySelectorAll('a[data-view-block], a[data-lockable]:not([data-view-allowed])').forEach((a)=>{a.addEventListener('click',(e)=>{e.preventDefault();e.stopImmediatePropagation();},{capture:true});a.setAttribute('aria-disabled','true');a.style.pointerEvents='none';a.style.opacity='0.6';});}
+  function applyState(mode){const m=mode||getMode();if(m==='editor'){if(getToken()!==EXPECTED_TOKEN){toViewer();return};var badge=document.querySelector('#tsn-editor-badge');if(!badge){badge=document.createElement('div');badge.id='tsn-editor-badge';badge.textContent='EDITOR MODE';Object.assign(badge.style,{position:'fixed',zIndex:'9999',bottom:'16px',right:'16px',padding:'8px 12px',background:'rgba(31,74,255,0.9)',color:'#fff',font:'600 12px/1 Inter, system-ui, sans-serif',borderRadius:'999px',boxShadow:'0 8px 24px rgba(0,0,0,0.2)',letterSpacing:'0.4px',userSelect:'none',pointerEvents:'none'});document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(badge));}document.documentElement.setAttribute('data-mode','editor');}
+    else if(m==='user'){document.documentElement.setAttribute('data-mode','user');document.querySelectorAll('[contenteditable="true"]').forEach((el)=>{el.setAttribute('contenteditable','false');el.classList?.remove('edit-outline','editable')});document.querySelectorAll('[data-lockable]').forEach((el)=>{const tag=el.tagName.toLowerCase();if(tag==='a'){el.addEventListener('click',(e)=>e.preventDefault(),{capture:true});el.style.pointerEvents='none';el.style.opacity='0.6';}else{try{el.disabled=true}catch(e){}el.classList?.add('opacity-60','pointer-events-none');}});disableAnchors();}
+    else{document.documentElement.setAttribute('data-mode','viewer');const all=document.querySelectorAll('*');all.forEach(disableInteractive);const killers='[data-editor-only],.editor-only,.only-editor,.edit-toolbar,.edit-controls,.admin-only,[data-admin],.debug-panel,.dev-only,.editable,.editor,.toolbar,.controls,.customize,.customise,.edit-button,.uploader,.upload,.file-upload,.dropzone,.cms,.admin,.editor-panel,.editor-area,.editor-tools,.editor-actions,[data-edit],[data-upload],[data-customize]';document.querySelectorAll(killers).forEach((el)=>el.remove());blockEvents(document);document.querySelectorAll('form:not([data-view-allowed])').forEach((f)=>{f.addEventListener('submit',(e)=>e.preventDefault(),true)});disableAnchors();}}
+  ;(function init(){try{var url=new URL(window.location.href);var qMode=url.searchParams.get('mode');if(qMode==='viewer'||qMode==='user'){localStorage.removeItem('tsn_token');localStorage.setItem('tsn_mode',qMode);}}catch(e){}const mode=getMode();const token=getToken();if(mode==='editor'&&token!=='edd9b8c166214a90997bf0abb951d62e9631d3d44ce1a2c39f6e9e3ac4e3ef4e'){setMode('viewer');}applyState(getMode());window.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&e.code==='KeyE'){e.preventDefault();if(isEditor())exitEditor();else enterEditorByPrompt();}});})();
+})();
