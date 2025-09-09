@@ -7,27 +7,26 @@
     try { localStorage.setItem(MODE_KEY, val) } catch(_) {}
   };
 
-  // --- viewer hardening & allow-lists ---
-  function disableInteractive(el){
-    if (el.matches?.('[data-view-allowed]') || el.closest?.('[data-view-allowed]')) return;
-    const t = (el.tagName||'').toLowerCase();
-    if (['input','select','textarea','button'].includes(t)) {
-      try{ el.disabled = true }catch(_){}
-      el.setAttribute('data-locked','true');
-    }
-    if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
-      el.setAttribute('contenteditable','false');
-      el.classList?.remove('edit-outline','editable');
-    }
-    const attrs = el.getAttributeNames ? el.getAttributeNames() : [];
-    attrs.forEach((name)=>{
-      if (/^on(click|input|keydown|keyup|submit|change|drag|drop)/i.test(name) &&
-          !el.matches('[data-view-allowed]') &&
-          !el.closest('[data-view-allowed]')) {
-        el.removeAttribute(name);
-      }
-    });
+function disableInteractive(el){
+  if (el.matches?.('[data-view-allowed]') || el.closest?.('[data-view-allowed]')) return;
+
+  const t = (el.tagName||'').toLowerCase();
+
+  // Soft-disable form controls in viewer
+  if (['input','select','textarea','button'].includes(t)) {
+    try{ el.disabled = true }catch(_){}
+    el.setAttribute('data-locked','true');
   }
+
+  // Turn off contenteditable, but don't destroy markers/handlers
+  if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
+    el.setAttribute('contenteditable','false');
+    el.classList?.remove('edit-outline','editable');
+  }
+
+  // IMPORTANT: do NOT strip inline on* handlers anymore.
+}
+
   function blockEvents(root){
     const blockSel=':is(button, input, select, textarea, [contenteditable], [role="button"], .btn, .button, .switch, .toggle, .editable, .editor, .toolbar, .controls)';
     ['click','input','change','keydown','keyup','submit','dragstart','drop'].forEach((ev)=>{
