@@ -66,35 +66,35 @@ function wireSubmit() {
     if (!form) return;
 
     const fd = new FormData(form);
-    const name = (fd.get("name")||"").toString().trim();
-    const email = (fd.get("email")||"").toString().trim();
-    const topic = (fd.get("topic")||"").toString().trim();
-    const message = (fd.get("message")||"").toString().trim();
+    const name    = (fd.get("name")    || "").toString().trim();
+    const email   = (fd.get("email")   || "").toString().trim();
+    const topic   = (fd.get("topic")   || "").toString().trim();   // not in DB
+    const message = (fd.get("message") || "").toString().trim();
 
-    if (!name || !email || !message) { alert("Please fill Name, Email and Message."); return; }
+    // Let native required inputs handle UX; just bail if empty
+    if (!name || !email || !message) return;
+
+    // Fold topic into message so it matches your table schema
+    const payload = {
+      page: "bio",
+      name,
+      email,
+      message: topic ? `[${topic}] ${message}` : message
+    };
 
     try {
-      const { error } = await sb.from("inquiries").insert({
-        page: "bio", name, email, topic, message
-      });
-      if (!error) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        $("inqDialog")?.close?.();
-        form.reset();
-        alert("Thanks! I’ll get back to you.");
-        return;
-      }
-    } catch (_) {
-      // fall through to mailto
-    }
+      const { error } = await sb.from("inquiries").insert(payload);
+      if (error) throw error;
 
-    // Fallback: open email client to the address on the dialog
-    const to = $("inqDialog")?.dataset?.toEmail || "jacopoberton98@gmail.com";
-    const subject = `Inquiry${topic ? ": " + topic : ""} — from ${name}`;
-    const body = `Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}\n\n— sent from Bio page`;
-    try { location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
-    catch(_) {}
+      // Success UX
+      e.preventDefault();
+      form.reset();
+      $("inqDialog")?.close?.();
+      alert("Thanks! Your question was sent.");
+    } catch (err) {
+      console.error("inquiries.insert failed:", err?.message || err);
+      alert("Hmm, that didn’t go through. Please try again in a minute.");
+    }
   }, { capture:true });
 }
 
