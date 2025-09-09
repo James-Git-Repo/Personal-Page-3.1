@@ -64,6 +64,30 @@ document.querySelectorAll(killers).forEach((el)=>{
   }
   function applyEditor(){
     document.documentElement.setAttribute('data-mode','editor');
+    // Let events pass (global blocker ignores anything under [data-view-allowed])
+document.body?.setAttribute('data-view-allowed','');
+
+// Unhide anything we hid in viewer
+document.querySelectorAll('[data-view-hidden]').forEach((el)=>{
+  el.style.display = '';
+  el.removeAttribute('data-view-hidden');
+});
+
+// Re-enable previously disabled controls/anchors
+document.querySelectorAll('[data-locked], [disabled], [aria-disabled="true"]').forEach((el)=>{
+  try { el.disabled = false; } catch(_){}
+  el.removeAttribute('data-locked');
+  el.removeAttribute('aria-disabled');
+  el.style.pointerEvents='';
+  el.style.opacity='';
+});
+
+// Restore contenteditable on obvious editables
+document.querySelectorAll('[data-editable], .editable').forEach((el)=>{
+  if (el.getAttribute('data-editable') === 'false') return;
+  el.setAttribute('contenteditable','true');
+  el.classList.add('edit-outline','editable');
+});
     if (!document.getElementById('tsn-editor-badge')) {
       const b = document.createElement('div'); b.id='tsn-editor-badge'; b.textContent='EDITOR MODE';
       Object.assign(b.style,{position:'fixed',zIndex:'9999',bottom:'16px',right:'16px',padding:'8px 12px',background:'rgba(31,74,255,.9)',color:'#fff',font:'600 12px/1 Inter, system-ui, sans-serif',borderRadius:'999px',boxShadow:'0 8px 24px rgba(0,0,0,.2)',letterSpacing:'0.4px',userSelect:'none',pointerEvents:'none'});
