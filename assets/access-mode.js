@@ -95,7 +95,7 @@ document.querySelectorAll('a[data-view-block], a[data-lockable]').forEach((a) =>
   aa.style.opacity = '';
   a.replaceWith(aa);
 });
-
+  }
 
   // public helpers used by editor-tray
   async function enterEditorIfAuthed(){
