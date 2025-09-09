@@ -61,12 +61,12 @@ document.querySelectorAll(killers).forEach((el)=>{
   }
   function applyEditor(){
     document.documentElement.setAttribute('data-mode','editor');
-    // Let events pass (global blocker ignores anything under [data-view-allowed])
+    // Allow events under body (viewer blockers skip this subtree)
 document.body?.setAttribute('data-view-allowed','');
 
-// Unhide anything we hid in viewer
+// Unhide elements hidden in viewer
 document.querySelectorAll('[data-view-hidden]').forEach((el)=>{
-  el.style.display = '';
+  el.style.display='';
   el.removeAttribute('data-view-hidden');
 });
 
@@ -85,12 +85,17 @@ document.querySelectorAll('[data-editable], .editable').forEach((el)=>{
   el.setAttribute('contenteditable','true');
   el.classList.add('edit-outline','editable');
 });
-    if (!document.getElementById('tsn-editor-badge')) {
-      const b = document.createElement('div'); b.id='tsn-editor-badge'; b.textContent='EDITOR MODE';
-      Object.assign(b.style,{position:'fixed',zIndex:'9999',bottom:'16px',right:'16px',padding:'8px 12px',background:'rgba(31,74,255,.9)',color:'#fff',font:'600 12px/1 Inter, system-ui, sans-serif',borderRadius:'999px',boxShadow:'0 8px 24px rgba(0,0,0,.2)',letterSpacing:'0.4px',userSelect:'none',pointerEvents:'none'});
-      document.addEventListener('DOMContentLoaded', ()=>document.body.appendChild(b));
-    }
-  }
+
+// Re-enable anchors that were viewer-blocked
+document.querySelectorAll('a[data-view-block], a[data-lockable]').forEach((a) => {
+  const aa = a.cloneNode(true);     // drops viewer click handler
+  aa.removeAttribute('data-view-block');
+  aa.removeAttribute('data-lockable');
+  aa.style.pointerEvents = '';
+  aa.style.opacity = '';
+  a.replaceWith(aa);
+});
+
 
   // public helpers used by editor-tray
   async function enterEditorIfAuthed(){
