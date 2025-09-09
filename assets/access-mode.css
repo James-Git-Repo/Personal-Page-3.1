@@ -40,3 +40,7 @@ html[data-mode="viewer"] :is(button, input, select, textarea, [role="button"], .
 }
 
 html[data-mode="viewer"] [data-locked="true"] { opacity: 0.6; pointer-events: none; user-select: text; }
+
+/* Hide the editor tray for viewers; show it only in editor mode */
+#editorTray { display: none; }
+[data-mode="editor"] #editorTray { display: block; }
