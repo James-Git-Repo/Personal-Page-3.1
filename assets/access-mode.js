@@ -49,9 +49,7 @@ function disableInteractive(el){
     document.querySelectorAll('*').forEach(disableInteractive);
     const killers='[data-editor-only],.editor-only,.only-editor,.editor,.editor-tools,.editor-actions,[data-edit],[data-upload],[data-customize]';
 document.querySelectorAll(killers).forEach((el)=>{
-  // If something is explicitly allowed, leave it
   if (el.matches('[data-view-allowed]') || el.closest('[data-view-allowed]')) return;
-  // Hide instead of removing, so we can revive it in editor
   el.setAttribute('data-view-hidden','');
   el.style.display='none';
 });
