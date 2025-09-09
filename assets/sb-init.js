@@ -10,9 +10,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
-// IMPORTANT: access-mode.js looks for this
+// IMPORTANT: access-mode.js waits for window.$sb
 window.__SB = sb;
 window.$sb  = sb;
 
-// (optional debug)
-window.__SB_INFO__ = { url: SUPABASE_URL, keyStart: SUPABASE_ANON_KEY.slice(0,12) };
