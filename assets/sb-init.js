@@ -7,4 +7,5 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 window.__SB = sb;
+window.$sb  = sb;           // <-- add this line so access-mode.js can find it
 window.__SB_INFO__ = { url: SUPABASE_URL, keyStart: SUPABASE_ANON_KEY.slice(0,12) };
