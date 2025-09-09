@@ -19,7 +19,13 @@ function tpl(p){
       <p><em>${p.blurb||""}</em></p>
     </div>`;
   const href = p.href && p.href.trim() ? p.href : `project.html?slug=${p.id}`;
-  if (p.id === "coming") return `<article class="card" data-view-block>${inner}</article>`;
+  if (p.id === "coming") {
+    const isEditor = document.documentElement.getAttribute("data-mode") === "editor";
+    // Use the file that exists in your repo
+    return isEditor
+      ? `<a class="card" href="project_new.html" data-view-allowed>${inner}</a>`
+      : `<article class="card" data-view-block>${inner}</article>`;
+  }
   return `<a class="card" href="${href}" data-view-allowed>${inner}</a>`;
 }
 
