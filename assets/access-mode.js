@@ -48,8 +48,14 @@
   function applyViewer(){
     document.documentElement.setAttribute('data-mode','viewer');
     document.querySelectorAll('*').forEach(disableInteractive);
-    const killers='[data-editor-only],.editor-only,.only-editor,.edit-toolbar,.edit-controls,.admin-only,[data-admin],.debug-panel,.dev-only,.editable,.editor,.toolbar,.controls,.customize,.customise,.edit-button,.uploader,.upload,.file-upload,.dropzone,.cms,.admin,.editor-panel,.editor-area,.editor-tools,.editor-actions,[data-edit],[data-upload],[data-customize]';
-    document.querySelectorAll(killers).forEach((el)=>el.remove());
+    const killers='[data-editor-only],.editor-only,.only-editor,.editor,.editor-tools,.editor-actions,[data-edit],[data-upload],[data-customize]';
+document.querySelectorAll(killers).forEach((el)=>{
+  // If something is explicitly allowed, leave it
+  if (el.matches('[data-view-allowed]') || el.closest('[data-view-allowed]')) return;
+  // Hide instead of removing, so we can revive it in editor
+  el.setAttribute('data-view-hidden','');
+  el.style.display='none';
+});
     blockEvents(document);
     document.querySelectorAll('form:not([data-view-allowed])').forEach((f)=>{
       f.addEventListener('submit', (e)=>{ if (!e.target.closest('[data-view-allowed]')) { e.preventDefault(); } }, true);
